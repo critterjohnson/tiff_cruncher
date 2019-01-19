@@ -3,8 +3,6 @@ Eats tiffs and spits out JPEGs.
 
 ## usage
 ### using tiff_cruncher.exe
-#### using Windows Powershell
-./tiff_cruncher.exe\
 -p <folder>         # path of soruce directory\
 -dest <folder>      # path of destination directory\
 -tp <number>        # total number of processes\
