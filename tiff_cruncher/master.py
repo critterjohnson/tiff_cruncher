@@ -8,16 +8,20 @@ import sys
 
 class Master:
     # constructor
-    def __init__(self, file_name,
-                 total_processes=10,
-                 pre_buff_location=None,
-                 post_buff_location=None,
-                 pre_buff_size=None,
-                 post_buff_size=None,
-                 log_file=None):
+    def __init__(self,
+                 path,  # path of the directory to run on
+                 dest,  # destination folder
+                 total_processes=10,  # maximum number of concurrent running processes
+                 pre_buff_location=None,  # location of the pre buffer
+                 post_buff_location=None,  # location of the post buffer
+                 pre_buff_size=None,  # size of the pre buffer
+                 post_buff_size=None,  # size of the post buffer
+                 log_file=None):  # location of the log file
 
+        self.fileTree = path
+        self.path = path
+        self.dest = dest
         self.totalProcesses = total_processes
-        self.fileName = file_name
         self.preBuffLocation = pre_buff_location
         self.postBuffLocation = post_buff_location
         self.preBuffSize = pre_buff_size
@@ -34,11 +38,23 @@ class Master:
         else:
             self.log = None
 
+    @property
+    def fileTree(self):
+        return self._fileTree
+
+    @fileTree.setter
+    def fileTree(self, path):
+        self._fileTree = get_file_tree(path)
+
     # process for running the master program
     def run(self):
-        with open(self.fileName, "r") as file:
-            for line in file:
-                self.commands.append(line)
+        # create commands based off files
+        for file in self.fileTree:
+            final = os.path.join(self.dest, file.split(self.path)[-1][1:])  # gets the correct file path
+            os.makedirs(os.path.split(final)[0], exist_ok=True)  # creates the directory structure
+            final = final[0:-4] + ".jpg"  # gets the correct file name
+            self.commands.append(["magick", "convert", file, "-compress", "jpeg", "-quality", "90", final])
+
         # if there's no need to buffer, runs without any buffers
         if self.preBuffLocation is None and self.postBuffLocation is None:
             for command in self.commands:
@@ -46,20 +62,18 @@ class Master:
                 while self.numProcesses == self.totalProcesses:
                     self.update_processes()
                 # creates a Process object to run the process
-                final = self.format_command(command)
-                self.processes.add(Process(self, final))
+                self.processes.add(Process(self, command))
                 self.numProcesses = len(self.processes)
 
         # if there are buffers
         else:
             for command in self.commands:
-                final = self.format_command(command)
                 # runs the following code only if it's a magic command
-                if final[0] == "magick":
+                if command[0] == "magick":
                     # if necessary, creates a new buffer handler
                     if self.curBuffHandler is None:
                         # creates a new buffer handler and changes the command to accomadate
-                        self.curBuffHandler, command = self.create_buff_handler(final)
+                        self.curBuffHandler, command = self.create_buff_handler(command)
                     # if necessary, waits for the current buffer handler to complete
                     if self.preBuffLocation is not None:
                         while not self.curBuffHandler.preCompleted:
@@ -81,7 +95,7 @@ class Master:
                         self.update_processes()
                         self.numProcesses = len(self.processes)
                     # attaches a process to the current buffer handler
-                    process = Process(self, final)
+                    process = Process(self, command)
                     self.processes.add(process)
                     self.numProcesses = len(self.processes)
                     self.curBuffHandler.process = process
@@ -93,8 +107,7 @@ class Master:
                     while self.numProcesses == self.totalProcesses:
                         self.update_processes()
                     # creates a Process object to run the process
-                    final = self.format_command(command)
-                    self.processes.add(Process(self, final))
+                    self.processes.add(Process(self, command))
                     self.numProcesses = len(self.processes)
 
         # updates all processes until they have completed
@@ -108,14 +121,6 @@ class Master:
             with open(self.logFile, "w") as log:
                 for event in self.log:
                     log.write(str(event) + "\n")
-
-    # formats a command properly
-    def format_command(self, command):
-        final = command.replace("\n", "").split(' ')
-        if final[-2] == ">>":
-            del final[-1]
-            del final[-1]
-        return final
 
     # checks all sub-processes for completion and removes completed sub-processes
     def update_processes(self):
@@ -176,11 +181,24 @@ def get_dir_size(path):
     return size
 
 
+# returns a full list of all the files in a directory tree
+def get_file_tree(path):
+    list = []
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            list.append(os.path.join(root, name))
+    return list
+
+
 # main method
 def main():
     # argument list
     args = {
-        "file_name": {
+        "path": {
+            "value": None,
+            "required": True
+        },
+        "dest": {
             "value": None,
             "required": True
         },
@@ -220,8 +238,10 @@ def main():
 
     # gets all arguments and assigns them the correct value
     for i in range(len(arguments)):
-        if arguments[i] == "-f":  # -f flags file name
-            args["file_name"]["value"] = arguments[i + 1]
+        if arguments[i] == "-p":  # -p flags path
+            args["path"]["value"] = arguments[i + 1]
+        elif arguments[i] == "-dest":  # -dest flags destination folder
+            args["dest"]["value"] = arguments[i+1]
         elif arguments[i] == "-tp":  # -tp flags total processes
             args["total_processes"]["value"] = int(arguments[i+1])
         elif arguments[i] == "-preloc":  # -preloc flags pre buffer location
@@ -238,9 +258,10 @@ def main():
     # ensures that all required arguments have been passed
     for key, val in args.items():
         if val["required"] and val["value"] is None:
-            raise ValueError(key + "is required.")
+            raise ValueError(key + " is required.")
 
-    master = Master(file_name=args["file_name"]["value"],
+    master = Master(path=args["path"]["value"],
+                    dest=args["dest"]["value"],
                     total_processes=args["total_processes"]["value"],
                     pre_buff_location=args["pre_buff_location"]["value"],
                     post_buff_location=args["post_buff_location"]["value"],
