@@ -32,12 +32,14 @@ class BufferHandler:
             self.preCompleted = True
         return self.preCompleted
 
+    # clears the pre cache
     def clear_pre(self):
         cmd = ["del", os.path.join(self.pre, os.path.split(self.get)[1])]
         prebuff_process = Process(self.master, cmd)
         while prebuff_process.update() is None:
             pass
 
+    # clears the post cache
     def clear_post(self):
         cmd = ["move", os.path.join(self.post, os.path.split(self.final)[1]), self.final]
         postbuff_process = Process(self.master, cmd)

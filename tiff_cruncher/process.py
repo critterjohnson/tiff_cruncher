@@ -10,7 +10,6 @@ class Process:
         self.buffHandle = buff_handle
 
         if cmd[0] == "magick":  # if it's an imagemagick command
-            self.destFile = self.cmd[-1]  # path for destination file
             self.process = subprocess.Popen(self.cmd)
         else:
             self.process = subprocess.Popen(self.cmd, shell=True)
