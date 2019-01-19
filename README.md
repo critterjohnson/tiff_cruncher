@@ -5,7 +5,8 @@ Eats tiffs and spits out JPEGs.
 ### using tiff_cruncher.exe
 #### using Windows Powershell
 ./tiff_cruncher.exe
--f <file>           # batch file\
+-p <folder>         # path of soruce directory\
+-dest <folder>      # path of destination directory\
 -tp <number>        # total number of processes\
 -preloc <file>      # location of pre buffer\
 -postloc <file>     # location of post buffer\
