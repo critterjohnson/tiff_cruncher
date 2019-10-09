@@ -52,7 +52,7 @@ class Master:
         for file in self.fileTree:
             final = os.path.join(self.dest, file.split(self.path)[-1][1:])  # gets the correct file path
             os.makedirs(os.path.split(final)[0], exist_ok=True)  # creates the directory structure
-            final = final[0:-4] + ".jpg"  # gets the correct file name
+            final = final[0:-4] + ".tif"  # gets the correct file name
             # -define tiff:tile-geometry=256x256
             self.commands.append(["magick", "convert", file, "-define", "tiff:tile-geometry=256x256", "-compress", "jpeg", "-quality", "90", "ptif:" + final])
 
