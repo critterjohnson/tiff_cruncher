@@ -53,7 +53,8 @@ class Master:
             final = os.path.join(self.dest, file.split(self.path)[-1][1:])  # gets the correct file path
             os.makedirs(os.path.split(final)[0], exist_ok=True)  # creates the directory structure
             final = final[0:-4] + ".jpg"  # gets the correct file name
-            self.commands.append(["magick", "convert", file, "-compress", "jpeg", "-quality", "90", final])
+            # -define tiff:tile-geometry=256x256
+            self.commands.append(["magick", "convert", file, "-define", "tiff:tile-geometry=256x256", "-compress", "jpeg", "-quality", "90", "ptif:" + final])
 
         # if there's no need to buffer, runs without any buffers
         if self.preBuffLocation is None and self.postBuffLocation is None:
